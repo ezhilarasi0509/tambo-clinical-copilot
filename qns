@@ -1,0 +1,31 @@
+Questions to be asked in chatbot to check the features 
+
+Snapshot (labs + vitals + meds)
+“Give a clinical snapshot for p1 including current labs, vitals, and active medications.”
+​
+
+“How is patient 3 doing right now? Summarize their condition with labs and vitals.”
+​
+
+“Show me a status snapshot of the currently selected patient with labs, vitals, and diagnosis.”
+​
+
+Medications + high‑risk drugs
+“List all medications for p4 and highlight any high‑risk drugs I should be careful about.”
+​
+
+“For patient 2, show only their medications with doses and routes.”
+​
+
+“Are there any high‑risk medications for the current patient that need closer monitoring?”
+​
+
+Patient summary card / overall summary
+“Provide a brief clinical summary for the currently selected patient without going into too much detail.”
+​
+
+“Switch to p6 and summarize their age, diagnosis, and current status in a few lines.”
+​
+
+Triage feature
+“For p2, what is the triage level and which care setting do you recommend (OPD, ward, or ICU)?”
