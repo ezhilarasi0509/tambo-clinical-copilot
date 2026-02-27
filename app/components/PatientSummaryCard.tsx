@@ -4,7 +4,7 @@ import React from "react";
 import type { Patient } from "../patientData";
 
 type Props = {
-  patient: Patient;
+  patient?: Patient; // make optional
   isActive: boolean;
   onSelect: () => void;
 };
@@ -23,6 +23,15 @@ function formatLastUpdated(value?: string) {
 }
 
 export function PatientSummaryCard({ patient, isActive, onSelect }: Props) {
+  // if no patient (e.g. P999), show a safe empty state
+  if (!patient) {
+    return (
+      <div className="border rounded-2xl p-5 shadow-sm bg-white/80 backdrop-blur text-sm text-zinc-700">
+        No patient data available for this request.
+      </div>
+    );
+  }
+
   const {
     name,
     age,

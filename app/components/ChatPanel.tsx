@@ -1,13 +1,25 @@
 "use client";
 
-import { useTamboThreadInput } from "@tambo-ai/react";
+import { useState } from "react";
 
-export default function ChatPanel() {
-  const { value, setValue, submit, isPending } = useTamboThreadInput();
+type Props = {
+  onSend: (text: string) => void;
+};
+
+export default function ChatPanel({ onSend }: Props) {
+  const [value, setValue] = useState("");
+  const [isPending, setIsPending] = useState(false);
 
   const handleSend = async () => {
-    if (!value.trim()) return;
-    await submit();
+    const trimmed = value.trim();
+    if (!trimmed || isPending) return;
+    setIsPending(true);
+    try {
+      onSend(trimmed);
+      setValue("");
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (

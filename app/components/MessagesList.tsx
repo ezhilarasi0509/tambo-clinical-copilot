@@ -1,137 +1,121 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { useTamboThread } from "@tambo-ai/react";
-import { usePatientContext } from "../PatientContext";
+import { patients } from "../patientData";
+import LabsCard from "./LabsCard";
+import MedicationsCard from "./MedicationsCard";
+import type { ChatMessage } from "../page";
 
-export default function MessagesList() {
-  const threadCtx = useTamboThread();
-  const { setActivePatientId } = usePatientContext();
+type Props = {
+  messages: ChatMessage[];
+};
 
-  const currentThread = threadCtx?.currentThread;
-  const messages = currentThread?.messages ?? [];
-  const isLoading = currentThread?.isLoading ?? false;
-
-  const lastPatientIdInAssistant = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
-      if (m.role !== "assistant") continue;
-
-      let text = "";
-      if (typeof m.content === "string") {
-        text = m.content;
-      } else if (Array.isArray(m.content)) {
-        const textPart = m.content.find(
-          (part: any) =>
-            part.type === "text" || part.type === "assistant_message",
-        );
-        text =
-          textPart?.text ??
-          textPart?.content?.text ??
-          JSON.stringify(textPart ?? m.content);
-      } else if (m.content?.text) {
-        text = m.content.text;
-      } else {
-        text = JSON.stringify(m.content);
-      }
-
-      const idMatch = text.match(/\b[pP][0-9]+\b/);
-      if (idMatch) {
-        return idMatch[0].toLowerCase();
-      }
-    }
-    return null;
-  }, [messages]);
-
-  useEffect(() => {
-    if (lastPatientIdInAssistant) {
-      setActivePatientId(lastPatientIdInAssistant);
-    }
-  }, [lastPatientIdInAssistant, setActivePatientId]);
-
-  if (isLoading && messages.length === 0) {
-    return (
-      <div className="mb-4 text-sm text-zinc-500">
-        Loading conversation...
-      </div>
-    );
-  }
-
+export default function MessagesList({ messages }: Props) {
   if (!messages || messages.length === 0) {
     return null;
   }
 
+  // Show only the last few messages (latest user + assistant),
+  // so the visible card always matches the most recent question.
+  const recentMessages = messages.slice(-4);
+
   return (
     <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
-      {messages.map((m: any) => {
+      {recentMessages.map((m) => {
         if (m.role === "user") {
-          let userText = "";
-
-          if (typeof m.content === "string") {
-            userText = m.content;
-          } else if (Array.isArray(m.content)) {
-            const part = m.content.find((p: any) => p.type === "text");
-            userText =
-              part?.text ??
-              part?.content?.text ??
-              JSON.stringify(m.content);
-          } else if (m.content?.text) {
-            userText = m.content.text;
-          } else {
-            userText = JSON.stringify(m.content);
-          }
-
-          userText = userText.replace(/\\n/g, "\n");
-
           return (
             <div
               key={m.id}
               className="self-end bg-blue-600 text-white rounded-xl px-3 py-2 max-w-md ml-auto whitespace-pre-wrap"
             >
-              {userText}
+              {m.text}
             </div>
           );
         }
 
-        if (m.role !== "assistant") return null;
+        if (m.role === "assistant") {
+          const patient =
+            m.patientId &&
+            patients.find(
+              (p) => p.id.toLowerCase() === m.patientId.toLowerCase(),
+            );
 
-        let text = "";
+          return (
+            <div
+              key={m.id}
+              className="flex flex-col gap-2 self-start max-w-md"
+            >
+              {m.text && (
+                <div className="bg-zinc-100 text-zinc-900 rounded-xl px-3 py-2 whitespace-pre-wrap">
+                  {m.text}
+                </div>
+              )}
 
-        if (typeof m.content === "string") {
-          text = m.content;
-        } else if (Array.isArray(m.content)) {
-          const textPart = m.content.find(
-            (part: any) =>
-              part.type === "text" || part.type === "assistant_message",
+              {/* Only show LabsCard when intent === "snapshot" */}
+              {patient && m.intent === "snapshot" && (
+                <div className="mt-1">
+                  <LabsCard
+                    patientName={patient.name}
+                    labs={
+                      patient.labs
+                        ? {
+                            hb: patient.labs.hemoglobin ?? null,
+                            wbc: null,
+                            platelets: null,
+                            creatinine: patient.labs.creatinine ?? null,
+                            sodium: null,
+                            potassium: null,
+                          }
+                        : null
+                    }
+                    vitals={
+                      patient.vitals
+                        ? {
+                            heartRate: patient.vitals.heartRate ?? null,
+                            bpSystolic: patient.vitals.systolicBP ?? null,
+                            bpDiastolic: patient.vitals.diastolicBP ?? null,
+                            respRate: patient.vitals.respRate ?? null,
+                            spo2: patient.vitals.spo2 ?? null,
+                            temperature: null,
+                          }
+                        : null
+                    }
+                    medications={
+                      patient.medications
+                        ? patient.medications.map((med) => ({
+                            name: med.name,
+                            dose: med.dose,
+                            route: med.route,
+                            frequency: med.frequency,
+                          }))
+                        : null
+                    }
+                  />
+                </div>
+              )}
+
+              {/* Show MedicationsCard only for meds intent */}
+              {patient && m.intent === "meds" && (
+                <div className="mt-1">
+                  <MedicationsCard
+                    patientName={patient.name}
+                    medications={
+                      patient.medications
+                        ? patient.medications.map((med) => ({
+                            name: med.name,
+                            dose: med.dose,
+                            route: med.route,
+                            frequency: med.frequency,
+                          }))
+                        : null
+                    }
+                  />
+                </div>
+              )}
+            </div>
           );
-          text =
-            textPart?.text ??
-            textPart?.content?.text ??
-            JSON.stringify(textPart ?? m.content);
-        } else if (m.content?.text) {
-          text = m.content.text;
-        } else {
-          text = JSON.stringify(m.content);
         }
 
-        text = text.replace(/\\n/g, "\n");
-
-        return (
-          <div
-            key={m.id}
-            className="flex flex-col gap-2 self-start max-w-md"
-          >
-            {text && (
-              <div className="bg-zinc-100 text-zinc-900 rounded-xl px-3 py-2 whitespace-pre-wrap">
-                {text}
-              </div>
-            )}
-
-            {m.renderedComponent && (
-              <div className="mt-1">{m.renderedComponent}</div>
-            )}
-          </div>
-        );
+        return null;
       })}
     </div>
   );
